@@ -1,0 +1,108 @@
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #eaeaea;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 64px;
+}
+
+.navbar-brand {
+  font-family: 'Nunito', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+
+.brand-dips {
+  color: #b04b6b;
+}
+
+.brand-book {
+  color: #f28dae;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666666;
+  text-decoration: none;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.nav-link:hover {
+  color: #b04b6b;
+}
+
+.nav-link--active {
+  color: #b04b6b;
+  border-bottom: 2px solid #b04b6b;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #555555;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.icon-btn:hover {
+  background: #fcebf1;
+  color: #b04b6b;
+}
+
+.icon-btn--active {
+  color: #b04b6b;
+  position: relative;
+}
+
+.icon-btn--active::after {
+  content: '';
+  position: absolute;
+  bottom: -16px;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: #b04b6b;
+}
+
+.icon-btn--filled {
+  background: transparent;
+  color: #555555;
+}
