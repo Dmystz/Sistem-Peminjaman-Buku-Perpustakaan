@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/login";
 import Home from "./pages/home";
@@ -7,6 +7,15 @@ import DetailBuku from "./pages/detailbuku";
 import FormPeminjaman from "./pages/formpeminjaman";
 import PinjamanSaya from "./pages/pinjamansaya";
 import Notifikasi from "./pages/notifikasi";
+import AdminDashboard from "./pages/admin";
+import AdminAnggota from "./pages/adminanggota";
+import AdminBuku from './pages/adminbuku';
+import Transaksi from "./pages/transaksi";
+
+function AdminRoute({ children }) {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  return user?.role === "admin" ? children : <Navigate to="/login" replace />;
+}
 
 function NotFound() {
   return (
@@ -38,10 +47,25 @@ export default function App() {
         <Route path="/buku/:id" element={<DetailBuku />} />
         <Route path="/buku/:id/pinjam" element={<FormPeminjaman />} />
 
+        {/* Admin */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+          
+        />
+        <Route path="/admin/anggota" element={
+          <AdminRoute><AdminAnggota /></AdminRoute>
+        } />
+        <Route path="/admin/buku" element={<AdminBuku />} />
+        <Route path="/admin/transaksi"   element={<Transaksi />} />
+        
         {/* Fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
