@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./admin.css";
+import AdminNavbar from "../components/AdminNavbar";
 
 const recentActivity = [
   {
@@ -36,41 +37,13 @@ const recentActivity = [
   },
 ];
 
-const navLinks = ["Dashboard", "Anggota", "Buku", "Transaksi"];
 
 export default function AdminDashboard() {
-  const [activeNav, setActiveNav] = useState("Dashboard");
 
   return (
     <div className="admin-root">
       {/* Navbar */}
-      <nav className="admin-navbar">
-        <div className="navbar-brand">Dips<span>Book</span></div>
-        <ul className="navbar-links">
-          {navLinks.map((link) => (
-            <li
-              key={link}
-              className={`nav-item ${activeNav === link ? "active" : ""}`}
-              onClick={() => setActiveNav(link)}
-            >
-              {link}
-              {activeNav === link && <span className="nav-underline" />}
-            </li>
-          ))}
-        </ul>
-        <div className="navbar-icons">
-          <button className="icon-btn" aria-label="Notifikasi">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </button>
-          <button className="icon-btn" aria-label="Profil">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A9 9 0 1118.88 6.196M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-        </div>
-      </nav>
+      <AdminNavbar active="Dashboard" />
 
       {/* Main Content */}
       <main className="admin-main">

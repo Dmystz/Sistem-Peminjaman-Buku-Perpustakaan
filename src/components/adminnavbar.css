@@ -1,6 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Poppins:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-.navbar {
+.admin-navbar {
   display: flex;
   align-items: center;
   background: #ffffff;
@@ -14,7 +14,7 @@
 }
 
 /* ── Logo ── */
-.navbar-brand {
+.admin-navbar-brand {
   font-family: 'Nunito', sans-serif;
   font-size: 22px;
   font-weight: 800;
@@ -23,52 +23,46 @@
   white-space: nowrap;
   text-decoration: none;
 }
-.navbar-brand span {
+.admin-navbar-brand span {
   color: #f28dae;
 }
 
 /* ── Nav links ── */
-.navbar-links {
+.admin-navbar-links {
   display: flex;
-  align-items: center;
-  gap: 4px;
   list-style: none;
+  gap: 4px;
+  flex: 1;
   margin: 0;
   padding: 0;
-  flex: 1;
 }
 
-.navbar-links li {
+.admin-nav-item {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.nav-link {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.93rem;
   font-weight: 500;
   color: #8a8a9a;
-  text-decoration: none;
   padding: 6px 16px;
   border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   transition: color 0.18s, background 0.18s;
-  display: block;
+  list-style: none;
+  user-select: none;
 }
-.nav-link:hover {
+.admin-nav-item:hover {
   color: #c0306a;
   background: #fdf2f6;
 }
-.nav-link--active {
+.admin-nav-item.active {
   color: #c0306a;
   font-weight: 700;
-  background: none;
 }
 
-/* Underline aktif */
-.nav-link--active::after {
-  content: '';
+.admin-nav-underline {
   display: block;
   position: absolute;
   bottom: -16px;
@@ -81,37 +75,37 @@
 }
 
 /* ── Icon buttons ── */
-.navbar-actions {
+.admin-navbar-icons {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.admin-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8a8a9a;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: #8a8a9a;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.15s, color 0.15s;
 }
-.icon-btn:hover {
+.admin-icon-btn:hover {
   background: #fdf2f6;
   color: #c0306a;
 }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .navbar {
+  .admin-navbar {
     padding: 0 16px;
     gap: 12px;
   }
-  .nav-link {
+  .admin-nav-item {
     padding: 6px 10px;
     font-size: 0.82rem;
   }

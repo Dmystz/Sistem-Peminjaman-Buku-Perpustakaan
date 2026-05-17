@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./adminbuku.css";
+import AdminNavbar from "../components/AdminNavbar";
 
 const initialBooks = [
   {
@@ -169,19 +170,7 @@ function TambahBukuModal({ onClose, onSave }) {
 
   return (
     <div className="tambah-page-overlay">
-      <div className="tambah-navbar">
-        <div className="tambah-logo">Dips<span>Book</span></div>
-        <nav className="tambah-nav">
-          <a href="#">Dashboard</a>
-          <a href="#" className="active">Buku</a>
-          <a href="#">Anggota</a>
-          <a href="#">Transaksi</a>
-        </nav>
-        <div className="tambah-nav-icons">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
-      </div>
+    <AdminNavbar active="Buku" />
 
       <div className="tambah-content">
         <h1 className="tambah-title">Tambah Buku Baru</h1>
@@ -299,27 +288,11 @@ export default function AdminBuku() {
   if (showTambah) {
     return <TambahBukuModal onClose={() => setShowTambah(false)} onSave={handleSaveBuku} />;
   }
-
+ 
   return (
     <div className="ab-root">
       {/* NAVBAR */}
-      <nav className="ab-navbar">
-        <div className="ab-logo">Dips<span>Book</span></div>
-        <ul className="ab-nav-links">
-          <li><a href="#">Dashboard</a></li>
-          <li><a href="#">Anggota</a></li>
-          <li><a href="#" className="ab-nav-active">Buku</a></li>
-          <li><a href="#">Transaksi</a></li>
-        </ul>
-        <div className="ab-nav-icons">
-          <button className="ab-icon-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          </button>
-          <button className="ab-icon-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </button>
-        </div>
-      </nav>
+        <AdminNavbar active="Buku" />
 
       <main className="ab-main">
         {/* HEADER */}

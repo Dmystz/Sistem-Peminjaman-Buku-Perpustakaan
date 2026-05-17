@@ -48,21 +48,26 @@ export default function App() {
         <Route path="/buku/:id/pinjam" element={<FormPeminjaman />} />
 
         {/* Admin */}
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          }
-          
-        />
+        <Route path="/admin" element={
+          <AdminRoute><AdminDashboard /></AdminRoute>
+        } />
+
+        <Route path="/admin/dashboard" element={      
+          <AdminRoute><AdminDashboard /></AdminRoute>
+        } />
+
         <Route path="/admin/anggota" element={
           <AdminRoute><AdminAnggota /></AdminRoute>
         } />
-        <Route path="/admin/buku" element={<AdminBuku />} />
-        <Route path="/admin/transaksi"   element={<Transaksi />} />
-        
+
+        <Route path="/admin/buku" element={
+          <AdminRoute><AdminBuku /></AdminRoute>      
+        } />
+
+        <Route path="/admin/transaksi" element={
+          <AdminRoute><Transaksi /></AdminRoute>     
+        } />
+
         {/* Fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>

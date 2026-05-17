@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./transaksi.css";
-
+import AdminNavbar from "../components/AdminNavbar";
 /* ── Data dummy ── */
 const DUMMY_DATA = [
   { id: "#TRX-9821", anggota: "Aris Setiawan",  buku: "Filosofi Teras: Hinduisme dan Stoikisme", tanggal: "12 Okt 2024", status: "Dipinjam" },
@@ -119,7 +119,6 @@ export default function TransaksiPage() {
   const [page, setPage]             = useState(1);
   const [data, setData]             = useState(DUMMY_DATA);
   const [openDropdown, setOpenDropdown] = useState(null); // id transaksi
-  const [activeNav, setActiveNav]   = useState("Transaksi");
 
   /* Filter berdasarkan search */
   const filtered = data.filter((t) =>
@@ -152,27 +151,7 @@ export default function TransaksiPage() {
     <div className="transaksi-page" onClick={() => setOpenDropdown(null)}>
 
       {/* ── Navbar ── */}
-      <nav className="navbar">
-        <div className="navbar-logo">Dips<span>Book</span></div>
-
-        <ul className="navbar-menu">
-          {NAV_ITEMS.map((item) => (
-            <li key={item}>
-              <button
-                className={`nav-item ${activeNav === item ? "active" : ""}`}
-                onClick={() => setActiveNav(item)}
-              >
-                {item}
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="navbar-actions">
-          <button className="icon-btn"><IconBell /></button>
-          <button className="icon-btn"><IconUser /></button>
-        </div>
-      </nav>
+        <AdminNavbar active="Transaksi" />
 
       {/* ── Main ── */}
       <main className="transaksi-main">
