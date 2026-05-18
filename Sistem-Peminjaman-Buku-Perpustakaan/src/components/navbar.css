@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Poppins:wght@400;500;600&display=swap');
+
+.navbar {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1.5px solid #f0eaf3;
+  padding: 0 48px;
+  height: 62px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 40px;
+}
+
+/* ── Logo ── */
+.navbar-brand {
+  font-family: 'Nunito', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #b04b6b;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.navbar-brand span {
+  color: #f28dae;
+}
+
+/* ── Nav links ── */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.navbar-links li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.nav-link {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.93rem;
+  font-weight: 500;
+  color: #8a8a9a;
+  text-decoration: none;
+  padding: 6px 16px;
+  border-radius: 8px;
+  transition: color 0.18s, background 0.18s;
+  display: block;
+}
+.nav-link:hover {
+  color: #c0306a;
+  background: #fdf2f6;
+}
+.nav-link--active {
+  color: #c0306a;
+  font-weight: 700;
+  background: none;
+}
+
+/* Underline aktif */
+.nav-link--active::after {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2.5px;
+  background: #c0306a;
+  border-radius: 2px;
+}
+
+/* ── Icon buttons ── */
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #8a8a9a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.icon-btn:hover {
+  background: #fdf2f6;
+  color: #c0306a;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .navbar {
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .nav-link {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+}
