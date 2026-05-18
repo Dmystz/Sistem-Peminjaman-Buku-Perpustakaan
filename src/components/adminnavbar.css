@@ -110,3 +110,90 @@
     font-size: 0.82rem;
   }
 }
+/* -- Profile Popup -- */
+.profile-popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideDownPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes slideDownPop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.profile-popup-top {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.profile-popup-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: #000;
+}
+.profile-popup-avatar svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2.5;
+}
+.profile-popup-name {
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #333;
+  margin-bottom: 4px;
+}
+.profile-popup-id {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 12px;
+}
+.profile-popup-role {
+  background: #fcebf1;
+  color: #9b4163;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 16px;
+  border-radius: 20px;
+}
+.profile-popup-bottom {
+  background: #f8f8f8;
+  padding: 16px;
+  border-top: 1px solid #eaeaea;
+}
+.profile-popup-logout {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fdeceb;
+  color: #c0392b;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.profile-popup-logout:hover {
+  opacity: 0.85;
+}

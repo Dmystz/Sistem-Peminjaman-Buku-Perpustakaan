@@ -132,8 +132,6 @@ body {
 
 /* ===== MAIN CONTENT ===== */
 .admin-main {
-  max-width: 880px;
-  margin: 0 auto;
   padding: 44px 24px 60px;
   display: flex;
   flex-direction: column;

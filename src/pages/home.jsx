@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import "./home.css";
 
@@ -72,13 +73,15 @@ function StatusBadge({ status }) {
 }
 
 // ── Kartu buku kecil ─────────────────────────────────────────
-// KOMPONEN: bisa dipindah ke src/components/books/BookCard.jsx
 function BookCard({ book }) {
+  const navigate = useNavigate();
+  const isTersedia = book.status === "tersedia";
+
   return (
     <div className="book-card">
-      <div className="book-card-image-wrap">
+      <div className="book-card-image-wrap" onClick={() => navigate(`/buku/${book.id}`)} style={{ cursor: 'pointer' }}>
         <img src={book.coverUrl} alt={book.title} className="book-cover" />
-        {book.status === "dipinjam" && (
+        {!isTersedia && (
           <div className="cover-overlay">
             <span className="cover-label">DIPINJAM</span>
           </div>
@@ -90,6 +93,21 @@ function BookCard({ book }) {
         <p className="book-author">{book.author}</p>
         <StatusBadge status={book.status} />
       </div>
+      <div className="book-card-actions">
+        <button
+          className="book-btn book-btn--detail"
+          onClick={() => navigate(`/buku/${book.id}`)}
+        >
+          Detail Buku
+        </button>
+        <button
+          className={`book-btn book-btn--pinjam${!isTersedia ? " book-btn--disabled" : ""}`}
+          disabled={!isTersedia}
+          onClick={() => isTersedia && navigate(`/buku/${book.id}/pinjam`)}
+        >
+          Pinjam Sekarang
+        </button>
+      </div>
     </div>
   );
 }
@@ -98,6 +116,7 @@ function BookCard({ book }) {
 export default function Home() {
   const [activeNav, setActiveNav] = useState("Katalog");
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   return (
     <div className="home-page">
@@ -138,9 +157,8 @@ export default function Home() {
                 dalam meraih cita-cita melalui pendidikan yang terbatas.
               </p>
               <div className="hero-actions">
-                {/* Tombol aksi — logika bisa pakai useLoan dari src/hooks/useLoans.js */}
-                <button className="btn-primary">Pinjam Sekarang</button>
-                <button className="btn-outline">Detail Buku</button>
+                <button className="btn-primary" onClick={() => navigate("/buku/1/pinjam")}>Pinjam Sekarang</button>
+                <button className="btn-outline" onClick={() => navigate("/buku/1")}>Detail Buku</button>
               </div>
             </div>
           </div>

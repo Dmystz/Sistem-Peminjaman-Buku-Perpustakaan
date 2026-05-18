@@ -42,10 +42,14 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      // TODO: Panggil login dari useAuth
-      // await login({ username, password });
-      // navigate('/dashboard');
-      console.log("Login dengan:", { username, password });
+      // Dummy login logic
+      if (username === "admin") {
+        localStorage.setItem("user", JSON.stringify({ username, role: "admin" }));
+        window.location.href = "/admin"; // Redirect ke admin dashboard
+      } else {
+        localStorage.setItem("user", JSON.stringify({ username, role: "user" }));
+        window.location.href = "/"; // Redirect ke home
+      }
     } catch (err) {
       console.error("Login gagal:", err);
     } finally {
@@ -79,7 +83,7 @@ export default function Login() {
               Username
             </label>
             <div className="input-wrapper">
-              <span className="input-icon left">
+              <span className="input-icon left" aria-hidden="true">
                 <UserIcon />
               </span>
               <input
@@ -101,7 +105,7 @@ export default function Login() {
               Password
             </label>
             <div className="input-wrapper">
-              <span className="input-icon left">
+              <span className="input-icon left" aria-hidden="true">
                 <LockIcon />
               </span>
               <input
@@ -124,6 +128,7 @@ export default function Login() {
               </button>
             </div>
           </div>
+
 
           {/* Tombol Masuk */}
           <button

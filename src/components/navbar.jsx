@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./navbar.css";
 
@@ -15,6 +16,14 @@ const UserIcon = () => (
   </svg>
 );
 
+const LogoutIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+
 const navLinks = [
   { label: "Katalog",      href: "/katalog" },
   { label: "Koleksi Buku", href: "/koleksi-buku" },
@@ -24,6 +33,7 @@ const navLinks = [
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showProfile, setShowProfile] = useState(false);
 
   function isActive(link) {
     if (location.pathname === link.href) return true;
@@ -59,9 +69,34 @@ export default function Navbar() {
         >
           <BellIcon />
         </button>
-        <button className="icon-btn" aria-label="Profil">
-          <UserIcon />
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button 
+            className="icon-btn" 
+            aria-label="Profil"
+            onClick={() => setShowProfile(!showProfile)}
+          >
+            <UserIcon />
+          </button>
+
+          {showProfile && (
+            <div className="profile-popup">
+              <div className="profile-popup-top">
+                <div className="profile-popup-avatar">
+                  <UserIcon />
+                </div>
+                <h4 className="profile-popup-name">User 1</h4>
+                <p className="profile-popup-id">202401099</p>
+                <span className="profile-popup-role">Mahasiswa</span>
+              </div>
+              <div className="profile-popup-bottom">
+                <button className="profile-popup-logout" onClick={() => navigate("/")}>
+                  <LogoutIcon />
+                  Keluar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

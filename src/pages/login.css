@@ -11,13 +11,14 @@
 
 /* ── Wrapper halaman penuh ── */
 .login-page {
-  position: relative;
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Poppins', sans-serif;
   overflow: hidden;
+  z-index: 9999;
 }
 
 /* ── Background gradient pink sesuai desain ── */
@@ -92,6 +93,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  text-align: left;
 }
 
 .field-label {
@@ -120,11 +122,13 @@
   background: #ffffff;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+  text-align: left !important;
 }
 
 .field-input::placeholder {
   color: #bbbbbb;
   font-size: 13px;
+  text-align: left !important;
 }
 
 .field-input:focus {
@@ -136,19 +140,21 @@
 /* ── Ikon dalam input ── */
 .input-icon {
   position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .input-icon.left {
-  left: 13px;
+  left: 14px !important;
 }
 
 .input-icon.right {
-  right: 13px;
+  right: 14px !important;
 }
 
 /* ── Tombol toggle lihat password ── */
