@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/navbar";
 import "./formpeminjaman.css";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const BACKEND_URL = API_BASE.replace("/api", "");
 
 // ─── ICONS ──────────────────────────────────────────────────────────────────
 const ArrowLeft = () => (
@@ -33,18 +36,6 @@ const CheckCircle = () => (
   </svg>
 );
 
-// ─── DATA BUKU (sama seperti di DetailBuku) ──────────────────────────────────
-const BUKU_LIST = [
-  { id: 1, cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80", judul: "Seni Menenangkan Hati", penulis: "Andi Wijaya", status: "tersedia" },
-  { id: 2, cover: "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400&q=80", judul: "Alam Semesta & Kita", penulis: "Dr. Sarah Fitri", status: "dipinjam" },
-  { id: 3, cover: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80", judul: "Petualangan Si Kecil", penulis: "Bunda Maya", status: "tersedia" },
-  { id: 4, cover: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&q=80", judul: "Ruang Tenang", penulis: "Rania Putri", status: "tersedia" },
-  { id: 5, cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&q=80", judul: "Mencari Makna Hidup", penulis: "Viktor Frankl", status: "tersedia" },
-  { id: 6, cover: "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400&q=80", judul: "Masa Depan AI", penulis: "Budi Santoso", status: "dipinjam" },
-  { id: 7, cover: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80", judul: "Nusantara Berjaya", penulis: "Prof. Ahmad", status: "tersedia" },
-  { id: 8, cover: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&q=80", judul: "Strategi Digital", penulis: "Linda Sari", status: "tersedia" },
-];
-
 const DURASI_OPTIONS = ["7 hari", "14 hari", "21 hari", "30 hari"];
 
 // ─── HELPER: hitung estimasi pengembalian ────────────────────────────────────
@@ -56,41 +47,133 @@ function hitungEstimasi(tanggal, durasi) {
   return tgl.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function hitungReturnDate(tanggal, durasi) {
+  if (!tanggal) return null;
+  const hari = parseInt(durasi);
+  const tgl = new Date(tanggal);
+  tgl.setDate(tgl.getDate() + hari);
+  return tgl.toISOString().split("T")[0]; // YYYY-MM-DD format
+}
+
 // ─── KOMPONEN UTAMA ──────────────────────────────────────────────────────────
-/**
- * File  : src/pages/FormPeminjaman.jsx
- * Route : /buku/:id/pinjam
- */
 export default function FormPeminjaman() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const buku = BUKU_LIST.find((b) => b.id === Number(id));
+  const [buku, setBuku] = useState(null);
+  const [loadingBuku, setLoadingBuku] = useState(true);
+  const [errorBuku, setErrorBuku] = useState(null);
 
   const [durasi, setDurasi] = useState("7 hari");
   const [tanggal, setTanggal] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  // Fetch data buku dari API berdasarkan id dari URL params
+  useEffect(() => {
+    const fetchBuku = async () => {
+      try {
+        setLoadingBuku(true);
+        const res = await fetch(`${API_BASE}/books/${id}`);
+        if (!res.ok) throw new Error("Buku tidak ditemukan");
+        const data = await res.json();
+        setBuku(data);
+      } catch (err) {
+        setErrorBuku(err.message);
+      } finally {
+        setLoadingBuku(false);
+      }
+    };
+    fetchBuku();
+  }, [id]);
 
   const estimasi = hitungEstimasi(tanggal, durasi);
 
-  function handleKonfirmasi() {
+  async function handleKonfirmasi() {
     if (!tanggal) {
       alert("Silakan pilih tanggal peminjaman terlebih dahulu.");
       return;
     }
-    setSubmitted(true);
-    // Di sini bisa tambahkan logika submit ke API
-    setTimeout(() => navigate("/"), 2000);
+
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) {
+      alert("Anda harus login terlebih dahulu.");
+      navigate("/login");
+      return;
+    }
+
+    const user = JSON.parse(storedUser);
+    if (!user?.id) {
+      alert("Sesi login tidak valid. Silakan login ulang.");
+      navigate("/login");
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError("");
+
+    const return_date = hitungReturnDate(tanggal, durasi);
+
+    try {
+      const res = await fetch(`${API_BASE}/books/borrow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          book_id: parseInt(id),
+          borrow_date: tanggal,
+          return_date,
+          status: "dipinjam",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal menyimpan peminjaman");
+      }
+
+      setSubmitted(true);
+      // Redirect ke halaman Pinjaman Saya setelah 1.5 detik
+      setTimeout(() => navigate("/pinjaman"), 1500);
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  if (!buku) {
+  // ── Loading buku ──
+  if (loadingBuku) {
     return (
-      <main className="form-page">
-        <button className="back-btn" onClick={() => navigate(-1)}><ArrowLeft /> Kembali</button>
-        <p style={{ color: "var(--gray-400)", marginTop: 40 }}>Buku tidak ditemukan.</p>
-      </main>
+      <div className="home-page">
+        <Navbar />
+        <main className="form-page" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+          <p style={{ color: "#888", fontSize: 16 }}>Memuat data buku...</p>
+        </main>
+      </div>
     );
   }
+
+  // ── Buku tidak ditemukan ──
+  if (errorBuku || !buku) {
+    return (
+      <div className="home-page">
+        <Navbar />
+        <main className="form-page">
+          <button className="back-btn" onClick={() => navigate(-1)}><ArrowLeft /> Kembali</button>
+          <p style={{ color: "var(--gray-400)", marginTop: 40 }}>
+            {errorBuku || "Buku tidak ditemukan."}
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  const isTersedia = (buku.stock ?? 0) > 0;
+  const coverUrl = buku.cover_url
+    ? (buku.cover_url.startsWith("http") ? buku.cover_url : `${BACKEND_URL}${buku.cover_url}`)
+    : null;
 
   return (
     <div className="home-page">
@@ -108,11 +191,22 @@ export default function FormPeminjaman() {
         <div className="form-book-card">
           <h2 className="form-book-card__heading">Buku yang Dipinjam</h2>
           <div className="form-book-card__cover-wrap">
-            <div className="form-book-card__cover-plain"></div>
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt={buku.title}
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }}
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+            ) : (
+              <div className="form-book-card__cover-plain"></div>
+            )}
           </div>
-          <span className="form-book-card__badge">TERSEDIA</span>
-          <h3 className="form-book-card__title">{buku.judul}</h3>
-          <p className="form-book-card__author">{buku.penulis}</p>
+          <span className={`form-book-card__badge${isTersedia ? "" : " form-book-card__badge--dipinjam"}`}>
+            {isTersedia ? "TERSEDIA" : "STOK HABIS"}
+          </span>
+          <h3 className="form-book-card__title">{buku.title}</h3>
+          <p className="form-book-card__author">{buku.author}</p>
         </div>
 
         {/* ── Kolom Kanan: Form ── */}
@@ -125,6 +219,7 @@ export default function FormPeminjaman() {
                 className="field-select"
                 value={durasi}
                 onChange={(e) => setDurasi(e.target.value)}
+                disabled={submitted || submitting}
               >
                 {DURASI_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
@@ -142,7 +237,9 @@ export default function FormPeminjaman() {
                 type="date"
                 className="field-input"
                 value={tanggal}
+                min={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setTanggal(e.target.value)}
+                disabled={submitted || submitting}
               />
               <span className="input-icon"><CalendarIcon /></span>
             </div>
@@ -156,17 +253,22 @@ export default function FormPeminjaman() {
             </span>
           </div>
 
+          {/* Error message */}
+          {submitError && (
+            <p style={{ color: "#c0392b", fontSize: 13, margin: "0 0 4px" }}>{submitError}</p>
+          )}
+
           {/* Tombol */}
           <button
             className={`konfirmasi-btn${submitted ? " konfirmasi-btn--success" : ""}`}
             onClick={handleKonfirmasi}
-            disabled={submitted}
+            disabled={submitted || submitting || !isTersedia}
           >
             <CheckCircle />
-            {submitted ? "Peminjaman Dikonfirmasi!" : "Konfirmasi Pinjaman"}
+            {submitted ? "Peminjaman Dikonfirmasi! Mengarahkan..." : submitting ? "Menyimpan..." : "Konfirmasi Pinjaman"}
           </button>
 
-          <button className="batal-btn" onClick={() => navigate(-1)} disabled={submitted}>
+          <button className="batal-btn" onClick={() => navigate(-1)} disabled={submitted || submitting}>
             Batal
           </button>
         </div>

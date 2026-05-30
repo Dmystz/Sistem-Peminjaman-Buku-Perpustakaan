@@ -105,7 +105,7 @@ function DeleteModal({ book, onConfirm, onCancel }) {
 
 // ─── Modal Tambah Buku ─────────────────────────────────────────────────────
 function TambahBukuModal({ onClose, onSaved }) {
-  const [form, setForm] = useState({ category: "", title: "", author: "", stok: 0, desc: "" });
+  const [form, setForm] = useState({ category: "", title: "", author: "", stok: 0 });
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -252,11 +252,6 @@ function TambahBukuModal({ onClose, onSaved }) {
             <div className="form-group">
               <label>Penulis <span style={{ color: "#c0392b" }}>*</span></label>
               <input placeholder="Nama penulis" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} />
-            </div>
-
-            <div className="form-group">
-              <label>Deskripsi Singkat</label>
-              <textarea placeholder="Berikan ringkasan isi buku..." rows={4} value={form.desc} onChange={e => setForm({ ...form, desc: e.target.value })} />
             </div>
 
             {error && <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 8 }}>{error}</p>}

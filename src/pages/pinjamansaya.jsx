@@ -64,36 +64,40 @@ export default function PinjamanSaya() {
         const storedUser = localStorage.getItem("user");
         if (!storedUser) return;
         const userObj = JSON.parse(storedUser);
-        
-        const res = await fetch(`${API_BASE}/transactions`);
-        const json = await res.json();
-        const rawData = Array.isArray(json) ? json : (json.data || []);
-        
-        const myTx = rawData.filter(tx => tx.user_id === userObj.id || tx.user?.username === userObj.username || tx.username === userObj.username || tx.anggota === userObj.name);
-        
-        const mapped = myTx.map((tx, idx) => {
+        if (!userObj?.id) return;
+
+        const res = await fetch(`${API_BASE}/books/transactions?user_id=${userObj.id}`);
+        const rawData = await res.json();
+        const rows = Array.isArray(rawData) ? rawData : [];
+
+        const mapped = rows.map((tx) => {
           let st = "dipinjam";
-          if (tx.status === "RETURNED" || tx.status === "Selesai" || tx.status === "KEMBALI") st = "selesai";
-          if (tx.status === "PENDING" || tx.status === "menunggu") st = "menunggu";
-          
+          const s = (tx.status || "").toLowerCase();
+          if (s === "returned" || s === "selesai" || s === "kembali") st = "selesai";
+          if (s === "pending" || s === "menunggu") st = "menunggu";
+
+          const coverRaw = tx.cover_url;
+          const cover = coverRaw
+            ? (coverRaw.startsWith("http") ? coverRaw : `${BACKEND_URL}${coverRaw}`)
+            : null;
+
           return {
-            id: tx.id || idx,
+            id: tx.id,
             realId: tx.id,
-            book_id: tx.book_id || tx.book?.id,
-            cover: tx.book?.cover_url ? `${BACKEND_URL}${tx.book.cover_url}` : null,
-            judul: tx.book?.title || tx.judul || tx.buku || `Buku #${tx.book_id || "-"}`,
-            penulis: tx.book?.author || tx.penulis || "Unknown Author",
-            tanggalPinjam: new Date(tx.created_at || tx.tanggal_pinjam || tx.tanggal || new Date()).toLocaleDateString("id-ID", {
-              day: "2-digit", month: "short", year: "numeric"
-            }),
-            tanggalKembali: tx.return_date ? new Date(tx.return_date).toLocaleDateString("id-ID", {
-              day: "2-digit", month: "short", year: "numeric"
-            }) : "Menunggu Kembali",
-            status: st
+            book_id: tx.book_id,
+            cover,
+            judul: tx.title || `Buku #${tx.book_id}`,
+            penulis: tx.author || "Unknown Author",
+            tanggalPinjam: tx.borrow_date
+              ? new Date(tx.borrow_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+              : "-",
+            tanggalKembali: tx.return_date
+              ? new Date(tx.return_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+              : "Belum ditentukan",
+            status: st,
           };
         });
-        
-        mapped.sort((a, b) => (b.realId || 0) - (a.realId || 0));
+
         setRiwayat(mapped);
       } catch (e) {
         console.error("Gagal fetch riwayat pinjaman:", e);
@@ -116,10 +120,10 @@ export default function PinjamanSaya() {
       ));
 
       if (modalBuku.realId) {
-        await fetch(`${API_BASE}/transactions/${modalBuku.realId}`, {
+        await fetch(`${API_BASE}/books/transactions/${modalBuku.realId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "PENDING" })
+          body: JSON.stringify({ status: "menunggu" })
         });
       }
       

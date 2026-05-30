@@ -21,6 +21,11 @@ const authRoutes = require("./backend/config/controllers/routes/authRoutes");
 // ✅ pakai routes
 app.use("/api/books", bookRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/transactions", (req, res, next) => {
+  // Reuse bookRoutes for /transactions sub-paths (injected directly)
+  req.url = "/transactions" + (req.url === "/" ? "" : req.url);
+  bookRoutes(req, res, next);
+});
 
 const PORT = process.env.PORT || 3000;
 
