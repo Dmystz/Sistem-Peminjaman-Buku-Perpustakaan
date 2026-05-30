@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import "./pinjamansaya.css";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const BACKEND_URL = API_BASE.replace("/api", "");
 
 // ─── ICON ────────────────────────────────────────────────────────────────────
 const HistoryIcon = () => (
@@ -48,60 +51,83 @@ const BookIcon = () => (
   </svg>
 );
 
-// ─── DATA RIWAYAT PINJAMAN ───────────────────────────────────────────────────
-const RIWAYAT = [
-  {
-    id: 1,
-    cover: "/cover_filosofi.png",
-    judul: "Laut Bercerita",
-    penulis: "Leila S. Chudori",
-    tanggalPinjam: "10 Mei 2026",
-    tanggalKembali: "17 Mei 2026",
-    status: "dipinjam",
-  },
-  {
-    id: 2,
-    cover: "/cover_atomic.png",
-    judul: "Pulang",
-    penulis: "Tere Liye",
-    tanggalPinjam: "10 Mar 2026",
-    tanggalKembali: "17 Mar 2026",
-    status: "selesai",
-  },
-  {
-    id: 3,
-    cover: "/cover_forest.png",
-    judul: "Sapiens",
-    penulis: "Yuval Noah Harari",
-    tanggalPinjam: "01 Jan 2026",
-    tanggalKembali: "08 Jan 2026",
-    status: "selesai",
-  },
-];
-
-// ─── KOMPONEN UTAMA ──────────────────────────────────────────────────────────
-/**
- * File  : src/pages/PinjamanSaya.jsx
- * Route : /pinjaman
- */
 export default function PinjamanSaya() {
   const navigate = useNavigate();
   const [modalBuku, setModalBuku] = useState(null);
   const [successBuku, setSuccessBuku] = useState(null);
-  const [riwayat, setRiwayat] = useState(RIWAYAT);
+  const [riwayat, setRiwayat] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRiwayat = async () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) return;
+        const userObj = JSON.parse(storedUser);
+        
+        const res = await fetch(`${API_BASE}/transactions`);
+        const json = await res.json();
+        const rawData = Array.isArray(json) ? json : (json.data || []);
+        
+        const myTx = rawData.filter(tx => tx.user_id === userObj.id || tx.user?.username === userObj.username || tx.username === userObj.username || tx.anggota === userObj.name);
+        
+        const mapped = myTx.map((tx, idx) => {
+          let st = "dipinjam";
+          if (tx.status === "RETURNED" || tx.status === "Selesai" || tx.status === "KEMBALI") st = "selesai";
+          if (tx.status === "PENDING" || tx.status === "menunggu") st = "menunggu";
+          
+          return {
+            id: tx.id || idx,
+            realId: tx.id,
+            book_id: tx.book_id || tx.book?.id,
+            cover: tx.book?.cover_url ? `${BACKEND_URL}${tx.book.cover_url}` : null,
+            judul: tx.book?.title || tx.judul || tx.buku || `Buku #${tx.book_id || "-"}`,
+            penulis: tx.book?.author || tx.penulis || "Unknown Author",
+            tanggalPinjam: new Date(tx.created_at || tx.tanggal_pinjam || tx.tanggal || new Date()).toLocaleDateString("id-ID", {
+              day: "2-digit", month: "short", year: "numeric"
+            }),
+            tanggalKembali: tx.return_date ? new Date(tx.return_date).toLocaleDateString("id-ID", {
+              day: "2-digit", month: "short", year: "numeric"
+            }) : "Menunggu Kembali",
+            status: st
+          };
+        });
+        
+        mapped.sort((a, b) => (b.realId || 0) - (a.realId || 0));
+        setRiwayat(mapped);
+      } catch (e) {
+        console.error("Gagal fetch riwayat pinjaman:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRiwayat();
+  }, []);
 
   const handleReturn = (item) => {
     // Show modal with selected book
     setModalBuku(item);
   };
 
-  const handleConfirmReturn = () => {
-    // Ubah status menjadi menunggu
-    setRiwayat(prev => prev.map(book => 
-      book.id === modalBuku.id ? { ...book, status: "menunggu" } : book
-    ));
-    setSuccessBuku(modalBuku);
-    setModalBuku(null);
+  const handleConfirmReturn = async () => {
+    try {
+      setRiwayat(prev => prev.map(book => 
+        book.id === modalBuku.id ? { ...book, status: "menunggu" } : book
+      ));
+
+      if (modalBuku.realId) {
+        await fetch(`${API_BASE}/transactions/${modalBuku.realId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "PENDING" })
+        });
+      }
+      
+      setSuccessBuku(modalBuku);
+      setModalBuku(null);
+    } catch (e) {
+      console.error("Gagal update status:", e);
+    }
   };
 
   return (
@@ -135,12 +161,27 @@ export default function PinjamanSaya() {
               </tr>
             </thead>
             <tbody>
-              {riwayat.map((item) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "32px", color: "#888" }}>Memuat riwayat pinjaman...</td>
+                </tr>
+              ) : riwayat.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "32px", color: "#888" }}>Belum ada riwayat pinjaman.</td>
+                </tr>
+              ) : riwayat.map((item) => (
                 <tr key={item.id} className="riwayat-row">
                   {/* Judul */}
                   <td className="riwayat-judul-cell">
-                    <div className={`riwayat-cover-plain riwayat-cover-plain--${item.id}`}></div>
-                    <span className="riwayat-judul">{item.judul}</span>
+                    {item.cover ? (
+                      <img src={item.cover} alt={item.judul} className="riwayat-cover-img" style={{ width: 40, height: 60, objectFit: "cover", borderRadius: 4, marginRight: 12, flexShrink: 0 }} />
+                    ) : (
+                      <div className={`riwayat-cover-plain riwayat-cover-plain--${item.id}`}></div>
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <span className="riwayat-judul">{item.judul}</span>
+                      <span style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{item.penulis}</span>
+                    </div>
                   </td>
 
                   {/* Tanggal Pinjam */}
@@ -192,7 +233,11 @@ export default function PinjamanSaya() {
             </p>
 
             <div className="modal-book-card">
-              <div className={`modal-book-cover riwayat-cover-plain--${modalBuku.id}`}></div>
+              {modalBuku.cover ? (
+                <img src={modalBuku.cover} alt={modalBuku.judul} style={{ width: 60, height: 90, objectFit: "cover", borderRadius: 6, marginRight: 16 }} />
+              ) : (
+                <div className={`modal-book-cover riwayat-cover-plain--${modalBuku.id}`}></div>
+              )}
               <div className="modal-book-info">
                 <span className="modal-badge">Sedang Dipinjam</span>
                 <h4 className="modal-book-title">{modalBuku.judul}</h4>
