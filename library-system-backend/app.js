@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -10,10 +11,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// ✅ import routes (TARUH DI SINI)
+// ✅ serve folder uploads sebagai static files
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+
+// ✅ import routes
 const bookRoutes = require("./backend/config/controllers/routes/bookRoutes");
 
-// ✅ pakai routes (TARUH DI SINI)
+// ✅ pakai routes
 app.use("/api/books", bookRoutes);
 
 // optional test route

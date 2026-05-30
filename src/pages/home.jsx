@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import "./home.css";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const BACKEND_URL = API_BASE.replace("/api", "");
 
 const SearchIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -18,50 +20,24 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
-// ── Data buku koleksi baru ───────────────────────────────────
-// TODO: Ganti dengan data dari bookService.js (src/services/bookService.js)
-const newBooks = [
-  {
-    id: 1,
-    category: "FIKSI",
-    title: "Filosofi Teras",
-    author: "Henry Manampiring",
-    status: "tersedia",
-    coverUrl: "/cover_filosofi.png",
-  },
-  {
-    id: 2,
-    category: "SELF IMPROVEMENT",
-    title: "Atomic Habits",
-    author: "James Clear",
-    status: "tersedia",
-    coverUrl: "/cover_atomic.png",
-  },
-  {
-    id: 3,
-    category: "SASTRA",
-    title: "Bumi Manusia",
-    author: "Pramoedya Ananta Toer",
-    status: "dipinjam",
-    coverUrl: "/cover_bumi.png",
-  },
-  {
-    id: 4,
-    category: "SAINS",
-    title: "Sapiens",
-    author: "Yuval Noah Harari",
-    status: "tersedia",
-    coverUrl: "/cover_sapiens.png",
-  },
-  {
-    id: 5,
-    category: "PSIKOLOGI",
-    title: "Quiet",
-    author: "Susan Cain",
-    status: "tersedia",
-    coverUrl: "/cover_quiet.png",
-  },
-];
+// ── Placeholder warna untuk buku tanpa cover ─────────────────
+const PLACEHOLDER_COLORS = ["#7c3aed","#1e40af","#b91c1c","#047857","#b45309","#be185d"];
+
+function CoverOrPlaceholder({ coverUrl, title, id }) {
+  if (coverUrl) {
+    return <img src={coverUrl} alt={title} className="book-cover" onError={(e) => { e.target.style.display='none'; }} />;
+  }
+  const bg = PLACEHOLDER_COLORS[(id || 0) % PLACEHOLDER_COLORS.length];
+  return (
+    <div style={{ width:'100%', aspectRatio:'3/4', background: bg, borderRadius: 6, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap: 8 }}>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+      </svg>
+      <span style={{ fontSize:10, color:'rgba(255,255,255,0.8)', textAlign:'center', padding:'0 8px' }}>{title?.slice(0,15)}</span>
+    </div>
+  );
+}
 
 // ── Badge status ─────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -80,7 +56,7 @@ function BookCard({ book }) {
   return (
     <div className="book-card">
       <div className="book-card-image-wrap" onClick={() => navigate(`/buku/${book.id}`)} style={{ cursor: 'pointer' }}>
-        <img src={book.coverUrl} alt={book.title} className="book-cover" />
+        <CoverOrPlaceholder coverUrl={book.coverUrl} title={book.title} id={book.id} />
         {!isTersedia && (
           <div className="cover-overlay">
             <span className="cover-label">DIPINJAM</span>
@@ -116,7 +92,29 @@ function BookCard({ book }) {
 export default function Home() {
   const [activeNav, setActiveNav] = useState("Katalog");
   const [search, setSearch] = useState("");
+  const [newBooks, setNewBooks] = useState([]);
   const navigate = useNavigate();
+
+  // Fetch buku terbaru dari API
+  useEffect(() => {
+    fetch(`${API_BASE}/books`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          // Ambil 5 buku terbaru, map ke format yang dibutuhkan
+          const mapped = data.slice(-5).reverse().map((b) => ({
+            id: b.id,
+            category: b.genre || "KOLEKSI",
+            title: b.title,
+            author: b.author,
+            status: (b.stock ?? 0) > 0 ? "tersedia" : "dipinjam",
+            coverUrl: b.cover_url ? `${BACKEND_URL}${b.cover_url}` : null,
+          }));
+          setNewBooks(mapped);
+        }
+      })
+      .catch((err) => console.error("Gagal fetch buku home:", err));
+  }, []);
 
   return (
     <div className="home-page">

@@ -1,20 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./adminanggota.css";
 import AdminNavbar from "../components/AdminNavbar";
 
-const dummyAnggota = [
-  { nim: "210901001", nama: "user 1", totalPinjam: 12, pinjamAktif: 2 },
-  { nim: "210901042", nama: "user 2", totalPinjam: 5,  pinjamAktif: 1 },
-  { nim: "210901089", nama: "user 3", totalPinjam: 0,  pinjamAktif: 0 },
-  { nim: "210901112", nama: "user 4", totalPinjam: 21, pinjamAktif: 3 },
-  { nim: "210901113", nama: "user 5", totalPinjam: 3,  pinjamAktif: 1 },
-  { nim: "210901114", nama: "user 6", totalPinjam: 8,  pinjamAktif: 2 },
-];
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 export default function AdminAnggota() {
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [anggota, setAnggota] = useState(dummyAnggota);
+  const [anggota, setAnggota] = useState([]);
+
+  useEffect(() => {
+    const fetchAnggota = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/users`);
+        const json = await res.json();
+        const rawData = Array.isArray(json) ? json : (json.data || []);
+        
+        const mapped = rawData.map((u, i) => ({
+          realId: u.id,
+          nim: u.nim || u.username || `NIM-${u.id || i}`,
+          nama: u.name || u.nama || `User ${u.id || i}`,
+          totalPinjam: u.totalPinjam || u.total_pinjam || 0,
+          pinjamAktif: u.pinjamAktif || u.pinjam_aktif || 0,
+        }));
+        
+        setAnggota(mapped);
+      } catch (err) {
+        console.error("Gagal fetch data anggota:", err);
+      }
+    };
+    fetchAnggota();
+  }, []);
 
   const filtered = anggota.filter(
     (a) =>
@@ -22,8 +38,22 @@ export default function AdminAnggota() {
       a.nim.includes(search)
   );
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    // Update UI immediately (optimistic)
     setAnggota((prev) => prev.filter((a) => a.nim !== deleteTarget.nim));
+
+    try {
+      if (deleteTarget.realId) {
+        await fetch(`${API_BASE}/users/${deleteTarget.realId}`, {
+          method: "DELETE"
+        });
+      }
+    } catch (err) {
+      console.error("Gagal menghapus anggota:", err);
+    }
+
     setDeleteTarget(null);
   };
 

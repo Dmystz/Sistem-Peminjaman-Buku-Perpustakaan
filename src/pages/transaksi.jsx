@@ -1,21 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./transaksi.css";
 import AdminNavbar from "../components/AdminNavbar";
-/* ── Data dummy ── */
-const DUMMY_DATA = [
-  { id: "#TRX-9821", anggota: "Aris Setiawan",  buku: "Filosofi Teras: Hinduisme dan Stoikisme", tanggal: "12 Okt 2024", status: "Dipinjam" },
-  { id: "#TRX-9815", anggota: "Maya Puspita",   buku: "Bumi Manusia (Pramoedya Ananta Toer)",   tanggal: "11 Okt 2024", status: "Selesai"  },
-  { id: "#TRX-9799", anggota: "Dian Sastro",    buku: "Sapiens: Sejarah Singkat Umat Manusia",  tanggal: "09 Okt 2024", status: "Dipinjam" },
-  { id: "#TRX-9782", anggota: "Rizky Febian",   buku: "Atomic Habits: Perubahan Kecil, Hasil L",tanggal: "08 Okt 2024", status: "Terlambat"},
-  { id: "#TRX-9750", anggota: "Budi Doremi",    buku: "Dunia Sophie: Sebuah Novel Sejarah Fil", tanggal: "05 Okt 2024", status: "Dipinjam" },
-  { id: "#TRX-9744", anggota: "Sinta Dewi",     buku: "Laskar Pelangi",                         tanggal: "04 Okt 2024", status: "Selesai"  },
-  { id: "#TRX-9731", anggota: "Hendra Wijaya",  buku: "Rich Dad Poor Dad",                      tanggal: "03 Okt 2024", status: "Dipinjam" },
-  { id: "#TRX-9720", anggota: "Layla Putri",    buku: "The Alchemist",                          tanggal: "02 Okt 2024", status: "Terlambat"},
-  { id: "#TRX-9710", anggota: "Fauzi Rahman",   buku: "Thinking, Fast and Slow",                tanggal: "01 Okt 2024", status: "Selesai"  },
-  { id: "#TRX-9700", anggota: "Nita Setiawan",  buku: "Ikigai: The Japanese Secret",            tanggal: "30 Sep 2024", status: "Dipinjam" },
-  { id: "#TRX-9695", anggota: "Eko Prasetyo",   buku: "48 Laws of Power",                       tanggal: "29 Sep 2024", status: "Selesai"  },
-  { id: "#TRX-9688", anggota: "Wulan Andari",   buku: "Man's Search for Meaning",               tanggal: "28 Sep 2024", status: "Dipinjam" },
-];
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 const STATUS_OPTIONS = ["Dipinjam", "Selesai", "Terlambat"];
 const PER_PAGE = 5;
@@ -117,8 +104,41 @@ function StatusDropdown({ current, onSelect, onClose }) {
 export default function TransaksiPage() {
   const [search, setSearch]         = useState("");
   const [page, setPage]             = useState(1);
-  const [data, setData]             = useState(DUMMY_DATA);
+  const [data, setData]             = useState([]);
   const [openDropdown, setOpenDropdown] = useState(null); // id transaksi
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/transactions`);
+        const json = await res.json();
+        const rawData = Array.isArray(json) ? json : (json.data || []);
+        
+        const mapped = rawData.map((tx) => {
+          let statusStr = "Dipinjam";
+          if (tx.status === "RETURNED" || tx.status === "Selesai" || tx.status === "KEMBALI") statusStr = "Selesai";
+          if (tx.status === "OVERDUE" || tx.status === "Terlambat") statusStr = "Terlambat";
+          
+          return {
+            id: tx.id ? `#TRX-${tx.id}` : `#TRX-${Math.floor(Math.random() * 10000)}`,
+            realId: tx.id,
+            anggota: tx.user?.name || tx.anggota || tx.nama_peminjam || `User ${tx.user_id || "-"}`,
+            buku: tx.book?.title || tx.judul || tx.judul_buku || `Buku ${tx.book_id || "-"}`,
+            tanggal: new Date(tx.created_at || tx.tanggal_pinjam || new Date()).toLocaleDateString("id-ID", {
+              day: "2-digit", month: "short", year: "numeric"
+            }),
+            status: statusStr
+          };
+        });
+        
+        mapped.sort((a, b) => (b.realId || 0) - (a.realId || 0));
+        setData(mapped);
+      } catch (err) {
+        console.error("Gagal fetch transaksi:", err);
+      }
+    };
+    fetchTransactions();
+  }, []);
 
   /* Filter berdasarkan search */
   const filtered = data.filter((t) =>
@@ -135,10 +155,30 @@ export default function TransaksiPage() {
   const dipinjam    = data.filter((t) => t.status === "Dipinjam").length;
   const kembaliHariIni = data.filter((t) => t.status === "Selesai").length;
 
-  function handleStatusChange(id, newStatus) {
+  async function handleStatusChange(id, newStatus) {
+    const target = data.find(t => t.id === id);
+    if (!target) return;
+
     setData((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
     );
+
+    try {
+      let backendStatus = newStatus;
+      if (newStatus === "Selesai") backendStatus = "RETURNED";
+      else if (newStatus === "Dipinjam") backendStatus = "BORROWED";
+      else if (newStatus === "Terlambat") backendStatus = "OVERDUE";
+
+      if (target.realId) {
+        await fetch(`${API_BASE}/transactions/${target.realId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: backendStatus })
+        });
+      }
+    } catch (err) {
+      console.error("Gagal update status transaksi:", err);
+    }
   }
 
   function toggleDropdown(id) {

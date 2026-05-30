@@ -1,44 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./admin.css";
 import AdminNavbar from "../components/AdminNavbar";
 
-const recentActivity = [
-  {
-    id: 1,
-    anggota: "user 1",
-    judul: "Filosofi Teras",
-    penulis: "Henry Manampiring",
-    status: "PINJAM",
-    waktu: "15 Mei 2026",
-  },
-  {
-    id: 2,
-    anggota: "user 2",
-    judul: "Bumi Manusia",
-    penulis: "Pramoedya Ananta Toer",
-    status: "KEMBALI",
-    waktu: "10 Mei 2026",
-  },
-  {
-    id: 3,
-    anggota: "user 3",
-    judul: "Laskar Pelangi",
-    penulis: "Andrea Hirata",
-    status: "PINJAM",
-    waktu: "8 Mei 2026",
-  },
-  {
-    id: 4,
-    anggota: "user 4",
-    judul: "Negeri 5 Menara",
-    penulis: "A. Fuadi",
-    status: "PINJAM",
-    waktu: "5 Mei 2026",
-  },
-];
-
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 export default function AdminDashboard() {
+  const [totalBuku, setTotalBuku] = useState(0);
+  const [totalTransaksi, setTotalTransaksi] = useState(0);
+  const [recentActivity, setRecentActivity] = useState([]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch Total Buku
+        const resBooks = await fetch(`${API_BASE}/books`);
+        const booksData = await resBooks.json();
+        const booksArray = Array.isArray(booksData) ? booksData : [];
+        setTotalBuku(booksArray.length);
+
+        // Fetch Total Transaksi & Aktivitas Terbaru
+        const resTrans = await fetch(`${API_BASE}/transactions`);
+        const transData = await resTrans.json();
+        const transArray = Array.isArray(transData) ? transData : [];
+        setTotalTransaksi(transArray.length);
+
+        // Format Aktivitas Terbaru
+        const sortedTrans = [...transArray].sort((a, b) => {
+          const dateA = new Date(a.created_at || a.tanggal_pinjam || 0);
+          const dateB = new Date(b.created_at || b.tanggal_pinjam || 0);
+          return dateB - dateA;
+        });
+
+        const recent = sortedTrans.slice(0, 4).map((tx, index) => {
+          return {
+            id: tx.id || index,
+            anggota: tx.user?.name || tx.anggota || tx.nama_peminjam || `User ${tx.user_id || "-"}`,
+            judul: tx.book?.title || tx.judul || tx.judul_buku || `Buku ${tx.book_id || "-"}`,
+            penulis: tx.book?.author || tx.penulis || tx.pengarang || "-",
+            status: tx.status === "RETURNED" || tx.status === "KEMBALI" ? "KEMBALI" : "PINJAM",
+            waktu: new Date(tx.created_at || tx.tanggal_pinjam || new Date()).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            })
+          };
+        });
+
+        setRecentActivity(recent);
+      } catch (error) {
+        console.error("Gagal mengambil data dashboard:", error);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="admin-root">
@@ -63,7 +78,7 @@ export default function AdminDashboard() {
             </div>
             <div className="stat-label">TOTAL BUKU</div>
             <div className="stat-value">
-              40 <span className="stat-unit">Buku</span>
+              {totalBuku} <span className="stat-unit">Buku</span>
             </div>
           </div>
 
@@ -75,7 +90,7 @@ export default function AdminDashboard() {
             </div>
             <div className="stat-label">TOTAL TRANSAKSI</div>
             <div className="stat-value">
-              12 <span className="stat-unit">Transaksi</span>
+              {totalTransaksi} <span className="stat-unit">Transaksi</span>
             </div>
           </div>
         </div>
@@ -121,12 +136,19 @@ export default function AdminDashboard() {
                     <td className="td-waktu">{row.waktu}</td>
                   </tr>
                 ))}
+                {recentActivity.length === 0 && (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "center", padding: "20px", color: "#888" }}>
+                      Belum ada aktivitas terbaru.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
           <div className="activity-footer">
-            Menampilkan 4 aktivitas terakhir dari 12 total data.
+            Menampilkan {recentActivity.length} aktivitas terakhir dari {totalTransaksi} total data.
           </div>
         </div>
       </main>

@@ -1,15 +1,13 @@
-const mysql = require("mysql2");
+const { Pool } = require("pg");
+require("dotenv").config();
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "librari_db"
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
 });
 
-db.connect((err) => {
-  if (err) throw err;
-  console.log("MySQL Connected...");
-});
+pool.connect()
+  .then(() => console.log("✅ Connected to Neon PostgreSQL"))
+  .catch((err) => console.error("❌ DB connection error:", err.message));
 
-module.exports = db;
+module.exports = pool;
