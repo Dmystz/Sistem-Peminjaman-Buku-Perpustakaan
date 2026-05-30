@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../../db");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 // POST /auth/login — login user (admin or mahasiswa)
 router.post("/login", async (req, res) => {
@@ -22,17 +24,27 @@ router.post("/login", async (req, res) => {
 
     const user = result.rows[0];
 
-    // For mahasiswa, password must match their NIM
-    // For admin, password matches the stored password directly
-    if (user.password !== password) {
+    // Verify password using bcrypt
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    if (!isMatch) {
       return res.status(401).json({ message: "Username atau password salah" });
     }
 
     // Don't send password back to client
     const { password: _, ...userWithoutPassword } = user;
 
+    // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || "supersecretkey";
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      jwtSecret,
+      { expiresIn: "1d" }
+    );
+
     res.json({
       message: "Login berhasil",
+      token,
       user: userWithoutPassword,
     });
   } catch (err) {

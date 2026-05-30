@@ -16,14 +16,11 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // ✅ import routes
 const bookRoutes = require("./backend/config/controllers/routes/bookRoutes");
+const authRoutes = require("./backend/config/controllers/routes/authRoutes");
 
 // ✅ pakai routes
 app.use("/api/books", bookRoutes);
-
-// optional test route
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
+app.use("/api/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
 

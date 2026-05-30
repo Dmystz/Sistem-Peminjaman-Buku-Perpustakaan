@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "./login.css";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
 // Icon sederhana — bisa diganti dengan react-icons jika sudah diinstall
 const UserIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8a8a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -34,24 +36,55 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // TODO: Ganti dengan useAuth hook dari src/hooks/useAuth.js
-  // const { login } = useAuth();
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!username || !password) {
+      setErrorMsg("Username dan password wajib diisi");
+      return;
+    }
     setLoading(true);
+    setErrorMsg("");
+    
     try {
-      // Dummy login logic
-      if (username === "admin") {
-        localStorage.setItem("user", JSON.stringify({ username, role: "admin" }));
-        window.location.href = "/admin"; // Redirect ke admin dashboard
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      
+      const contentType = res.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
       } else {
-        localStorage.setItem("user", JSON.stringify({ username, role: "user" }));
-        window.location.href = "/"; // Redirect ke home
+        const text = await res.text();
+        throw new Error("Respons server tidak valid (Mungkin endpoint belum dibuat di backend).");
+      }
+      
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Username atau password salah");
+      }
+      
+      // Simpan token JWT dan user
+      if (!data.token) {
+        throw new Error("Token JWT tidak ditemukan dari server.");
+      }
+      
+      localStorage.setItem("token", data.token);
+      const userData = data.user || { username, role: data.role || "user" };
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      const role = (userData.role || "").toLowerCase();
+      if (role === "admin") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/";
       }
     } catch (err) {
       console.error("Login gagal:", err);
+      setErrorMsg(err.message);
     } finally {
       setLoading(false);
     }
@@ -77,6 +110,12 @@ export default function Login() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="login-form" noValidate>
+          {errorMsg && (
+            <div style={{ color: "#d9534f", background: "#fdf3f2", padding: "10px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px", border: "1px solid #f5c6c5", textAlign: "center" }}>
+              {errorMsg}
+            </div>
+          )}
+
           {/* Field Username */}
           <div className="field-group">
             <label htmlFor="username" className="field-label">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./navbar.css";
 
@@ -34,6 +34,18 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showProfile, setShowProfile] = useState(false);
+  const [user, setUser] = useState({ name: "Pengguna", username: "-", role: "Mahasiswa" });
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (e) {
+      console.error("Gagal membaca data user dari storage", e);
+    }
+  }, []);
 
   function isActive(link) {
     if (location.pathname === link.href) return true;
@@ -84,12 +96,18 @@ export default function Navbar() {
                 <div className="profile-popup-avatar">
                   <UserIcon />
                 </div>
-                <h4 className="profile-popup-name">User 1</h4>
-                <p className="profile-popup-id">202401099</p>
-                <span className="profile-popup-role">Mahasiswa</span>
+                <h4 className="profile-popup-name">{user.name || user.username || "Pengguna"}</h4>
+                <p className="profile-popup-id">{user.username || "-"}</p>
+                <span className="profile-popup-role">
+                  {user.role === "admin" ? "Administrator" : "Mahasiswa"}
+                </span>
               </div>
               <div className="profile-popup-bottom">
-                <button className="profile-popup-logout" onClick={() => navigate("/")}>
+                <button className="profile-popup-logout" onClick={() => {
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("user");
+                  navigate("/login");
+                }}>
                   <LogoutIcon />
                   Keluar
                 </button>

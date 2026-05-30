@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminNavbar.css";
 
@@ -35,6 +35,18 @@ export default function AdminNavbar({ active }) {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState(active || "Dashboard");
   const [showProfile, setShowProfile] = useState(false);
+  const [user, setUser] = useState({ name: "Admin", username: "-", role: "admin" });
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (e) {
+      console.error("Gagal membaca data admin dari storage", e);
+    }
+  }, []);
 
   function handleNav(link) {
     setActiveNav(link);
@@ -82,12 +94,18 @@ export default function AdminNavbar({ active }) {
                 <div className="profile-popup-avatar">
                   <UserIcon />
                 </div>
-                <h4 className="profile-popup-name">Admin 1</h4>
-                <p className="profile-popup-id">12345678</p>
-                <span className="profile-popup-role">Admin Perpustakaan</span>
+                <h4 className="profile-popup-name">{user.name || user.username || "Admin"}</h4>
+                <p className="profile-popup-id">{user.username || "-"}</p>
+                <span className="profile-popup-role">
+                  {user.role === "admin" ? "Admin Perpustakaan" : "Petugas"}
+                </span>
               </div>
               <div className="profile-popup-bottom">
-                <button className="profile-popup-logout" onClick={() => navigate("/login")}>
+                <button className="profile-popup-logout" onClick={() => {
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("user");
+                  navigate("/login");
+                }}>
                   <LogoutIcon />
                   Keluar
                 </button>

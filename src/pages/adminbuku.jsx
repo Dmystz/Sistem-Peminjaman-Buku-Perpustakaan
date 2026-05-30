@@ -133,7 +133,7 @@ function TambahBukuModal({ onClose, onSaved }) {
     const formData = new FormData();
     formData.append("title", form.title);
     formData.append("author", form.author);
-    formData.append("stock", form.stok);
+    formData.append("stock", parseInt(form.stok, 10) || 0);
     if (coverFile) formData.append("cover", coverFile);
 
     try {
@@ -240,7 +240,7 @@ function TambahBukuModal({ onClose, onSaved }) {
               </div>
               <div className="form-group">
                 <label>Jumlah Stok</label>
-                <input type="number" min="0" value={form.stok} onChange={e => setForm({ ...form, stok: parseInt(e.target.value) || 0 })} />
+                <input type="number" min="0" value={form.stok} onChange={e => setForm({ ...form, stok: e.target.value })} />
               </div>
             </div>
 
@@ -437,7 +437,7 @@ export default function AdminBuku() {
                       </div>
                     </td>
                     <td className="td-stok">
-                      <span className="stok-val">{String(book.stock ?? 0).padStart(2, "0")}</span>
+                      <span className="stok-val">{book.stock ?? 0}</span>
                     </td>
                     <td>
                       <span className={getStatusClass(book.stock ?? 0)}>{getStatus(book.stock ?? 0)}</span>
