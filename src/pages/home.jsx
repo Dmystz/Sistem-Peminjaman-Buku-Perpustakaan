@@ -122,10 +122,10 @@ export default function Home() {
       <Navbar activeNav={activeNav} setActiveNav={setActiveNav} />
 
       <main className="home-main">
-        {/* ── Section: Paling Dicari ── */}
+        {/* ── Section: Buku Terbaru ── */}
         <section className="section-popular">
           <div className="section-header-row">
-            <h2 className="section-title">Paling Dicari</h2>
+            <h2 className="section-title">Buku Terbaru</h2>
             {/* SearchBar — bisa dipindah ke src/components/common/SearchBar.jsx */}
             <div className="search-wrap">
               <SearchIcon />
@@ -139,24 +139,38 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Hero banner buku trending */}
+          {/* Hero banner buku terbaru (ambil buku paling baru dari backend) */}
           <div className="hero-banner">
-            {/* Sampul buku hero */}
             <div className="hero-cover">
-              <img src="/hero_book.png" alt="Buku Trending" className="hero-cover-img" />
+              <img
+                src={newBooks?.[0]?.coverUrl || "/hero_book.png"}
+                alt="Buku Terbaru"
+                className="hero-cover-img"
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
             </div>
 
-            {/* Info buku trending */}
             <div className="hero-info">
-              <span className="trending-badge">TRENDING #1</span>
-              <h1 className="hero-title">Laskar Pelangi</h1>
+              <span className="trending-badge">TERBARU</span>
+              <h1 className="hero-title">{newBooks?.[0]?.title || ""}</h1>
               <p className="hero-desc">
-                Kisah inspiratif tentang perjuangan sepuluh anak di Pulau Belitung
-                dalam meraih cita-cita melalui pendidikan yang terbatas.
+                {(newBooks?.[0]?.author && `Ditulis oleh ${newBooks[0].author}`) || ""}
               </p>
               <div className="hero-actions">
-                <button className="btn-primary" onClick={() => navigate("/buku/1/pinjam")}>Pinjam Sekarang</button>
-                <button className="btn-outline" onClick={() => navigate("/buku/1")}>Detail Buku</button>
+                <button
+                  className="btn-primary"
+                  onClick={() => newBooks?.[0]?.id && navigate(`/buku/${newBooks[0].id}/pinjam`)}
+                  disabled={!newBooks?.[0]?.id}
+                >
+                  Pinjam Sekarang
+                </button>
+                <button
+                  className="btn-outline"
+                  onClick={() => newBooks?.[0]?.id && navigate(`/buku/${newBooks[0].id}`)}
+                  disabled={!newBooks?.[0]?.id}
+                >
+                  Detail Buku
+                </button>
               </div>
             </div>
           </div>
