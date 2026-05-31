@@ -149,6 +149,21 @@
   transform: translateY(-2px);
 }
 
+.notif-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.notif-item--unread:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(232, 93, 138, 0.08);
+  background-color: #fff2f5 !important;
+}
+
+.notif-item--read:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
 @media (max-width: 480px) {
   .notif-title {
     font-size: 1.35rem;

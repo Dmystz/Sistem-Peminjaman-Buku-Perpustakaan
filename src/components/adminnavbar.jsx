@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./AdminNavbar.css";
+import "./adminnavbar.css";
 
 const NAV_LINKS = ["Dashboard", "Anggota", "Buku", "Transaksi"];
 
@@ -31,11 +31,34 @@ const ROUTES = {
   Transaksi: "/admin/transaksi",
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
 export default function AdminNavbar({ active }) {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState(active || "Dashboard");
   const [showProfile, setShowProfile] = useState(false);
   const [user, setUser] = useState({ name: "Admin", username: "-", role: "admin" });
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE}/books/notifications`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const unread = data.filter(n => n.read_at === null).length;
+        setUnreadCount(unread);
+      }
+    } catch (e) {
+      console.error("Gagal fetch unread notifications count for admin:", e);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -46,6 +69,10 @@ export default function AdminNavbar({ active }) {
     } catch (e) {
       console.error("Gagal membaca data admin dari storage", e);
     }
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   function handleNav(link) {
@@ -76,8 +103,32 @@ export default function AdminNavbar({ active }) {
 
       {/* Icons */}
       <div className="admin-navbar-icons">
-        <button className="admin-icon-btn" aria-label="Notifikasi">
+        <button
+          className="admin-icon-btn"
+          aria-label="Notifikasi"
+          onClick={() => navigate("/notifikasi")}
+          style={{ position: "relative" }}
+        >
           <BellIcon />
+          {unreadCount > 0 && (
+            <span style={{
+              position: "absolute",
+              top: "-2px",
+              right: "-2px",
+              background: "#e74c3c",
+              color: "white",
+              fontSize: "10px",
+              fontWeight: "bold",
+              borderRadius: "50%",
+              width: "16px",
+              height: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+              {unreadCount}
+            </span>
+          )}
         </button>
         <div style={{ position: 'relative' }}>
           <button 

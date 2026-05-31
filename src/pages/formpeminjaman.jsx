@@ -116,11 +116,14 @@ export default function FormPeminjaman() {
     const return_date = hitungReturnDate(tanggal, durasi);
 
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE}/books/borrow`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
-          user_id: user.id,
           book_id: parseInt(id),
           borrow_date: tanggal,
           return_date,

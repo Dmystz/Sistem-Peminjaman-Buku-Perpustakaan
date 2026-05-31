@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../db");
 const multer = require("multer");
+const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 
@@ -87,10 +88,29 @@ router.post("/generate-synopsis", async (req, res) => {
   }
 });
 
+// Middleware verifikasi JWT
+const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: Token tidak tersedia" });
+  }
+  const token = authHeader.split(" ")[1];
+  try {
+    const jwtSecret = process.env.JWT_SECRET || "supersecretkey";
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: "Forbidden: Token tidak valid" });
+  }
+};
+
 // ─── POST pinjam buku ──────────────────────────────────────────────────────
 // PENTING: semua route statis harus di atas /:id agar tidak ditangkap sebagai param
-router.post("/borrow", async (req, res) => {
-  const { user_id, book_id, borrow_date, return_date, status } = req.body;
+router.post("/borrow", verifyJWT, async (req, res) => {
+  const { book_id, borrow_date, return_date, status } = req.body;
+  const user_id = req.user.id;
+
   console.log("BORROW — user:", user_id, "book:", book_id);
   if (!user_id || !book_id) {
     return res.status(400).json({ error: "user_id dan book_id wajib diisi" });
@@ -117,6 +137,7 @@ router.post("/borrow", async (req, res) => {
   }
 });
 
+
 // ─── POST kembalikan buku ──────────────────────────────────────────────────
 router.post("/return", async (req, res) => {
   const { transaction_id, book_id } = req.body;
@@ -141,17 +162,39 @@ router.get("/transactions", async (req, res) => {
     let query, params;
     if (user_id) {
       query = `
-        SELECT t.*, b.title, b.author, b.cover_url
+        SELECT
+          t.id,
+          t.status,
+          t.borrow_date,
+          t.return_date,
+          t.book_id,
+          t.user_id,
+          u.username AS nama_anggota,
+          b.title AS judul_buku,
+          b.author,
+          b.cover_url
         FROM transactions t
-        LEFT JOIN books b ON b.id = t.book_id
+        JOIN users u ON t.user_id = u.id
+        JOIN books b ON t.book_id = b.id
         WHERE t.user_id = $1
         ORDER BY t.id DESC`;
       params = [user_id];
     } else {
       query = `
-        SELECT t.*, b.title, b.author, b.cover_url
+        SELECT
+          t.id,
+          t.status,
+          t.borrow_date,
+          t.return_date,
+          t.book_id,
+          t.user_id,
+          u.username AS nama_anggota,
+          b.title AS judul_buku,
+          b.author,
+          b.cover_url
         FROM transactions t
-        LEFT JOIN books b ON b.id = t.book_id
+        JOIN users u ON t.user_id = u.id
+        JOIN books b ON t.book_id = b.id
         ORDER BY t.id DESC`;
       params = [];
     }
@@ -168,16 +211,55 @@ router.get("/transactions", async (req, res) => {
 router.put("/transactions/:txId", async (req, res) => {
   const { txId } = req.params;
   const { status } = req.body;
+  const client = await db.connect();
   try {
-    const result = await db.query(
+    await client.query("BEGIN");
+
+    const origTxResult = await client.query("SELECT * FROM transactions WHERE id = $1", [txId]);
+    if (origTxResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      client.release();
+      return res.status(404).json({ error: "Transaksi tidak ditemukan" });
+    }
+    const origTx = origTxResult.rows[0];
+
+    const result = await client.query(
       "UPDATE transactions SET status=$1 WHERE id=$2 RETURNING *",
       [status, txId]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: "Transaksi tidak ditemukan" });
-    res.json({ message: "Status transaksi diperbarui", transaction: result.rows[0] });
+    const updatedTx = result.rows[0];
+
+    if (status === "menunggu") {
+      await client.query(
+        'INSERT INTO notifications (user_id, message, "user") VALUES ($1, $2, $3)',
+        [origTx.user_id, "Ada pengembalian buku yang perlu diverifikasi", "admin"]
+      );
+    }
+    else if (status === "RETURNED" || status === "Selesai") {
+      const wasReturned = origTx.status === "RETURNED" || origTx.status === "Selesai" || origTx.status === "returned";
+      if (!wasReturned) {
+        await client.query("UPDATE books SET stock = stock + 1 WHERE id = $1", [origTx.book_id]);
+      }
+      await client.query(
+        'INSERT INTO notifications (user_id, message, "user") VALUES ($1, $2, $3)',
+        [origTx.user_id, "Buku kamu telah berhasil dikembalikan", "user"]
+      );
+    }
+    else if (status === "tidak_dikembalikan") {
+      await client.query(
+        'INSERT INTO notifications (user_id, message, "user") VALUES ($1, $2, $3)',
+        [origTx.user_id, "Pengembalian bukumu ditolak karena buku tidak ditemukan", "user"]
+      );
+    }
+
+    await client.query("COMMIT");
+    res.json({ message: "Status transaksi diperbarui", transaction: updatedTx });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("PUT /transactions/:id error:", err.message);
     res.status(500).json({ error: "Gagal memperbarui transaksi" });
+  } finally {
+    client.release();
   }
 });
 
@@ -189,6 +271,98 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error("GET /books error:", err.message);
     res.status(500).json({ error: "Gagal mengambil data buku" });
+  }
+});
+
+// Helper untuk mengecek keterlambatan peminjaman
+const checkOverdueNotifications = async () => {
+  try {
+    const overdueResult = await db.query(
+      `SELECT DISTINCT user_id 
+       FROM transactions 
+       WHERE return_date < NOW() 
+         AND status IN ('dipinjam', 'borrowed', 'menunggu')`
+    );
+
+    const message = "Buku kamu sudah melewati batas pengembalian, segera kembalikan!";
+
+    for (const row of overdueResult.rows) {
+      const { user_id } = row;
+      const checkResult = await db.query(
+        'SELECT 1 FROM notifications WHERE user_id = $1 AND message = $2',
+        [user_id, message]
+      );
+      if (checkResult.rows.length === 0) {
+        await db.query(
+          'INSERT INTO notifications (user_id, message, "user") VALUES ($1, $2, $3)',
+          [user_id, message, "user"]
+        );
+      }
+    }
+  } catch (err) {
+    console.error("Error checking overdue notifications:", err.message);
+  }
+};
+
+// ─── GET /notifications ─────────────────────────────────────────────────────
+// HARUS di atas GET /:id agar tidak tertangkap sebagai param
+router.get("/notifications", async (req, res) => {
+  await checkOverdueNotifications();
+
+  let user_id = null;
+  let role = null;
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (token) {
+      const jwtSecret = process.env.JWT_SECRET || "supersecretkey";
+      const decoded = jwt.verify(token, jwtSecret);
+      user_id = decoded?.id;
+      role = decoded?.role;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  if (!user_id) {
+    user_id = req.query.user_id;
+    role = req.query.role;
+  }
+
+  try {
+    let query, params;
+    if (role === "admin") {
+      query = 'SELECT * FROM notifications WHERE "user" = \'admin\' ORDER BY id DESC';
+      params = [];
+    } else {
+      query = 'SELECT * FROM notifications WHERE "user" = \'user\' AND user_id = $1 ORDER BY id DESC';
+      params = [user_id];
+    }
+
+    const result = await db.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("GET /notifications error:", err.message);
+    res.status(500).json({ error: "Gagal mengambil data notifikasi" });
+  }
+});
+
+// ─── PUT /notifications/:id/read ────────────────────────────────────────────
+// HARUS di atas PUT /:id agar tidak tertangkap sebagai param
+router.put("/notifications/:id/read", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      "UPDATE notifications SET read_at = NOW() WHERE id = $1 RETURNING *",
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Notifikasi tidak ditemukan" });
+    }
+    res.json({ message: "Notifikasi ditandai telah dibaca", notification: result.rows[0] });
+  } catch (err) {
+    console.error("PUT /notifications/:id/read error:", err.message);
+    res.status(500).json({ error: "Gagal memperbarui status notifikasi" });
   }
 });
 
@@ -207,7 +381,7 @@ router.get("/:id", async (req, res) => {
 
 // ─── POST tambah buku (dengan cover opsional) ──────────────────────────────
 router.post("/", upload.single("cover"), async (req, res) => {
-  const { title, author, stock } = req.body;
+  const { title, author, stock, description, category } = req.body;
   const cover_url = req.file ? `/uploads/${req.file.filename}` : null;
 
   if (!title || !author) {
@@ -216,8 +390,8 @@ router.post("/", upload.single("cover"), async (req, res) => {
 
   try {
     const result = await db.query(
-      "INSERT INTO books (title, author, stock, cover_url) VALUES ($1, $2, $3, $4) RETURNING *",
-      [title, author, parseInt(stock) || 0, cover_url]
+      "INSERT INTO books (title, author, stock, cover_url, description, category) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [title, author, parseInt(stock) || 0, cover_url, description || null, category || null]
     );
     res.status(201).json({ message: "Buku berhasil ditambahkan", book: result.rows[0] });
   } catch (err) {
@@ -229,17 +403,17 @@ router.post("/", upload.single("cover"), async (req, res) => {
 // ─── PUT update buku (dengan cover opsional) ───────────────────────────────
 router.put("/:id", upload.single("cover"), async (req, res) => {
   const { id } = req.params;
-  const { title, author, stock } = req.body;
+  const { title, author, stock, description, category } = req.body;
 
   try {
     let query, params;
     if (req.file) {
       const cover_url = `/uploads/${req.file.filename}`;
-      query = "UPDATE books SET title=$1, author=$2, stock=$3, cover_url=$4 WHERE id=$5 RETURNING *";
-      params = [title, author, parseInt(stock) || 0, cover_url, id];
+      query = "UPDATE books SET title=$1, author=$2, stock=$3, cover_url=$4, description=$5, category=$6 WHERE id=$7 RETURNING *";
+      params = [title, author, parseInt(stock) || 0, cover_url, description || null, category || null, id];
     } else {
-      query = "UPDATE books SET title=$1, author=$2, stock=$3 WHERE id=$4 RETURNING *";
-      params = [title, author, parseInt(stock) || 0, id];
+      query = "UPDATE books SET title=$1, author=$2, stock=$3, description=$4, category=$5 WHERE id=$6 RETURNING *";
+      params = [title, author, parseInt(stock) || 0, description || null, category || null, id];
     }
     const result = await db.query(query, params);
     if (result.rows.length === 0) return res.status(404).json({ error: "Buku tidak ditemukan" });
@@ -262,5 +436,7 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ error: "Gagal menghapus buku" });
   }
 });
+
+
 
 module.exports = router;

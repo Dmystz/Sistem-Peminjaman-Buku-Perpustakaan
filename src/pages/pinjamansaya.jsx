@@ -115,17 +115,23 @@ export default function PinjamanSaya() {
 
   const handleConfirmReturn = async () => {
     try {
-      setRiwayat(prev => prev.map(book => 
-        book.id === modalBuku.id ? { ...book, status: "menunggu" } : book
-      ));
+      const token = localStorage.getItem("token");
 
       if (modalBuku.realId) {
-        await fetch(`${API_BASE}/books/transactions/${modalBuku.realId}`, {
+        const res = await fetch(`${API_BASE}/books/transactions/${modalBuku.realId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({ status: "menunggu" })
         });
+        if (!res.ok) throw new Error(await res.text());
       }
+
+      setRiwayat(prev => prev.map(book =>
+        book.id === modalBuku.id ? { ...book, status: "menunggu" } : book
+      ));
       
       setSuccessBuku(modalBuku);
       setModalBuku(null);
@@ -210,7 +216,7 @@ export default function PinjamanSaya() {
                     ) : (
                       <button
                         className="aksi-btn aksi-btn--pinjam-lagi"
-                        onClick={() => navigate(`/buku/${item.id}/pinjam`)}
+                        onClick={() => navigate(`/buku/${item.book_id}/pinjam`)}
                       >
                         Pinjam Lagi
                       </button>

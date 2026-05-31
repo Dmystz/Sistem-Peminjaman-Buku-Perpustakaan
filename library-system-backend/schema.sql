@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS books (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   author VARCHAR(255) NOT NULL,
-  stock INT DEFAULT 0
+  stock INT DEFAULT 0,
+  cover_url VARCHAR(255),
+  description TEXT,
+  category VARCHAR(100)
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
@@ -48,3 +51,27 @@ CREATE TABLE IF NOT EXISTS transactions (
   borrow_date TIMESTAMP DEFAULT NOW(),
   return_date TIMESTAMP NULL
 );
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INT,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  read_at TIMESTAMP NULL,
+  "user" VARCHAR(50) NOT NULL
+);
+
+-- Idempotent column check for notifications.user in case table was created previously without it
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'notifications' AND column_name = 'user'
+  ) THEN
+    ALTER TABLE notifications ADD COLUMN "user" VARCHAR(50);
+    UPDATE notifications SET "user" = 'user' WHERE "user" IS NULL;
+    ALTER TABLE notifications ALTER COLUMN "user" SET NOT NULL;
+  END IF;
+END $$;
+
+

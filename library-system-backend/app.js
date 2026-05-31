@@ -17,10 +17,12 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 // ✅ import routes
 const bookRoutes = require("./backend/config/controllers/routes/bookRoutes");
 const authRoutes = require("./backend/config/controllers/routes/authRoutes");
+const userRoutes = require("./backend/config/controllers/routes/userRoutes");
 
 // ✅ pakai routes
 app.use("/api/books", bookRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/transactions", (req, res, next) => {
   // Reuse bookRoutes for /transactions sub-paths (injected directly)
   req.url = "/transactions" + (req.url === "/" ? "" : req.url);

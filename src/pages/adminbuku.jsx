@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import "./adminbuku.css";
-import AdminNavbar from "../components/AdminNavbar";
+import AdminNavbar from "../components/adminnavbar";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 const BACKEND_URL = API_BASE.replace("/api", "");
@@ -105,7 +105,7 @@ function DeleteModal({ book, onConfirm, onCancel }) {
 
 // ─── Modal Tambah Buku ─────────────────────────────────────────────────────
 function TambahBukuModal({ onClose, onSaved }) {
-  const [form, setForm] = useState({ category: "", title: "", author: "", stok: 0 });
+  const [form, setForm] = useState({ category: "", title: "", author: "", stok: 0, description: "" });
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -134,6 +134,8 @@ function TambahBukuModal({ onClose, onSaved }) {
     formData.append("title", form.title);
     formData.append("author", form.author);
     formData.append("stock", parseInt(form.stok, 10) || 0);
+    formData.append("category", form.category);
+    formData.append("description", form.description);
     if (coverFile) formData.append("cover", coverFile);
 
     try {
@@ -252,6 +254,25 @@ function TambahBukuModal({ onClose, onSaved }) {
             <div className="form-group">
               <label>Penulis <span style={{ color: "#c0392b" }}>*</span></label>
               <input placeholder="Nama penulis" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} />
+            </div>
+
+            <div className="form-group">
+              <label>Sinopsis</label>
+              <textarea
+                placeholder="Masukkan sinopsis buku..."
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                rows="4"
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                  resize: "vertical"
+                }}
+              />
             </div>
 
             {error && <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 8 }}>{error}</p>}

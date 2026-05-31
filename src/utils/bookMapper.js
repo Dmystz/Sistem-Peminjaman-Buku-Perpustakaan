@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api
 const BACKEND_URL = API_BASE.replace("/api", "");
 
 export function mapBook(book) {
-  const genre = GENRES[(book.id - 1) % GENRES.length] || "Umum";
+  const genre = book.category || GENRES[(book.id - 1) % GENRES.length] || "Umum";
   const status = book.stock > 0 ? "tersedia" : "dipinjam";
   const coverSeed = `book-${book.id}`;
   
@@ -17,17 +17,17 @@ export function mapBook(book) {
   return {
     ...book,
     genre,
-    category: genre,
+    category: book.category || "Belum tersedia",
     status,
     cover: resolvedCover,
     coverUrl: resolvedCover,
     judul: book.title,
     penulis: book.author,
-    kategori: genre,
+    kategori: book.category || "Belum tersedia",
     penerbit: "Penerbit Indonesia",
     halaman: `${200 + (book.id * 17) % 300} Hlm`,
     bahasa: "Indonesia",
     tahun: `${2020 + (book.id % 5)}`,
-    sinopsis: `${book.title} adalah sebuah karya tulis oleh ${book.author} yang membahas tema-tema menarik seputar ${genre.toLowerCase()}. Buku ini sangat direkomendasikan untuk pembaca yang ingin memperluas wawasan.`,
+    sinopsis: book.description || "Belum tersedia",
   };
 }

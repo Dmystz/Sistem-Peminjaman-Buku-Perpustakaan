@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "./transaksi.css";
-import AdminNavbar from "../components/AdminNavbar";
+import AdminNavbar from "../components/adminnavbar";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
@@ -70,6 +70,7 @@ function StatusBtn({ status, onClick }) {
     Dipinjam:  "status-dipinjam",
     Selesai:   "status-selesai",
     Terlambat: "status-terlambat",
+    "Tidak Dikembalikan": "status-terlambat",
   }[status] || "status-dipinjam";
 
   return (
@@ -107,38 +108,61 @@ export default function TransaksiPage() {
   const [data, setData]             = useState([]);
   const [openDropdown, setOpenDropdown] = useState(null); // id transaksi
 
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/transactions`);
+      const json = await res.json();
+      const rawData = Array.isArray(json) ? json : (json.data || []);
+      
+      const mapped = rawData.map((tx) => {
+        let statusStr = "Dipinjam";
+        if (tx.status === "RETURNED" || tx.status === "Selesai" || tx.status === "KEMBALI") statusStr = "Selesai";
+        if (tx.status === "OVERDUE" || tx.status === "Terlambat") statusStr = "Terlambat";
+        if (tx.status === "menunggu" || tx.status === "Menunggu") statusStr = "Menunggu";
+        if (tx.status === "tidak_dikembalikan" || tx.status === "Tidak Dikembalikan") statusStr = "Tidak Dikembalikan";
+        
+        return {
+          id: tx.id ? `#TRX-${tx.id}` : `#TRX-${Math.floor(Math.random() * 10000)}`,
+          realId: tx.id,
+          anggota: tx.nama_anggota || tx.user_name || tx.user?.name || tx.anggota || tx.nama_peminjam || `User ${tx.user_id || "-"}`,
+          buku: tx.judul_buku || tx.title || tx.judul || tx.buku || tx.judul_buku || `Buku ${tx.book_id || "-"}`,
+          tanggal: new Date(tx.created_at || tx.tanggal_pinjam || new Date()).toLocaleDateString("id-ID", {
+            day: "2-digit", month: "short", year: "numeric"
+          }),
+          status: statusStr
+        };
+      });
+      
+      mapped.sort((a, b) => (b.realId || 0) - (a.realId || 0));
+      setData(mapped);
+    } catch (err) {
+      console.error("Gagal fetch transaksi:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/transactions`);
-        const json = await res.json();
-        const rawData = Array.isArray(json) ? json : (json.data || []);
-        
-        const mapped = rawData.map((tx) => {
-          let statusStr = "Dipinjam";
-          if (tx.status === "RETURNED" || tx.status === "Selesai" || tx.status === "KEMBALI") statusStr = "Selesai";
-          if (tx.status === "OVERDUE" || tx.status === "Terlambat") statusStr = "Terlambat";
-          
-          return {
-            id: tx.id ? `#TRX-${tx.id}` : `#TRX-${Math.floor(Math.random() * 10000)}`,
-            realId: tx.id,
-            anggota: tx.user?.name || tx.anggota || tx.nama_peminjam || `User ${tx.user_id || "-"}`,
-            buku: tx.book?.title || tx.judul || tx.judul_buku || `Buku ${tx.book_id || "-"}`,
-            tanggal: new Date(tx.created_at || tx.tanggal_pinjam || new Date()).toLocaleDateString("id-ID", {
-              day: "2-digit", month: "short", year: "numeric"
-            }),
-            status: statusStr
-          };
-        });
-        
-        mapped.sort((a, b) => (b.realId || 0) - (a.realId || 0));
-        setData(mapped);
-      } catch (err) {
-        console.error("Gagal fetch transaksi:", err);
-      }
-    };
     fetchTransactions();
   }, []);
+
+  async function handleVerifikasi(realId, action) {
+    try {
+      const token = localStorage.getItem("token");
+      const backendStatus = action === "Selesai" ? "RETURNED" : "tidak_dikembalikan";
+      const res = await fetch(`${API_BASE}/transactions/${realId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ status: backendStatus })
+      });
+      if (res.ok) {
+        await fetchTransactions();
+      }
+    } catch (err) {
+      console.error("Gagal verifikasi transaksi:", err);
+    }
+  }
 
   /* Filter berdasarkan search */
   const filtered = data.filter((t) =>
@@ -164,6 +188,7 @@ export default function TransaksiPage() {
     );
 
     try {
+      const token = localStorage.getItem("token");
       let backendStatus = newStatus;
       if (newStatus === "Selesai") backendStatus = "RETURNED";
       else if (newStatus === "Dipinjam") backendStatus = "BORROWED";
@@ -172,7 +197,10 @@ export default function TransaksiPage() {
       if (target.realId) {
         await fetch(`${API_BASE}/transactions/${target.realId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({ status: backendStatus })
         });
       }
@@ -263,19 +291,58 @@ export default function TransaksiPage() {
                   <td><span className="book-title-cell">{trx.buku}</span></td>
                   <td><span className="date-cell">{trx.tanggal}</span></td>
                   <td>
-                    <div
-                      className="status-dropdown-wrap"
-                      onClick={(e) => { e.stopPropagation(); toggleDropdown(trx.id); }}
-                    >
-                      <StatusBtn status={trx.status} onClick={() => {}} />
-                      {openDropdown === trx.id && (
-                        <StatusDropdown
-                          current={trx.status}
-                          onSelect={(s) => handleStatusChange(trx.id, s)}
-                          onClose={() => setOpenDropdown(null)}
-                        />
-                      )}
-                    </div>
+                    {trx.status === "Menunggu" ? (
+                      <div className="aksi-verifikasi-wrap" style={{ display: "flex", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="btn-verif-selesai"
+                          style={{
+                            background: "#2ecc71",
+                            color: "white",
+                            border: "none",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontWeight: "600",
+                            fontSize: "12px",
+                            transition: "background 0.2s"
+                          }}
+                          onClick={() => handleVerifikasi(trx.realId, "Selesai")}
+                        >
+                          Selesai
+                        </button>
+                        <button
+                          className="btn-verif-tolak"
+                          style={{
+                            background: "#e74c3c",
+                            color: "white",
+                            border: "none",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontWeight: "600",
+                            fontSize: "12px",
+                            transition: "background 0.2s"
+                          }}
+                          onClick={() => handleVerifikasi(trx.realId, "Buku Tidak Dikembalikan")}
+                        >
+                          Buku Tidak Dikembalikan
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="status-dropdown-wrap"
+                        onClick={(e) => { e.stopPropagation(); toggleDropdown(trx.id); }}
+                      >
+                        <StatusBtn status={trx.status} onClick={() => {}} />
+                        {openDropdown === trx.id && (
+                          <StatusDropdown
+                            current={trx.status}
+                            onSelect={(s) => handleStatusChange(trx.id, s)}
+                            onClose={() => setOpenDropdown(null)}
+                          />
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               )) : (

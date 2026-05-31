@@ -105,7 +105,6 @@ export default function Login() {
         <p className="login-subtitle">
           Selamat datang di DipsBook.<br />
           Masukkan username dan password<br />
-          sesuai nama dan NIM di KTM.
         </p>
 
         {/* Form */}

@@ -44,27 +44,6 @@ export default function DetailBuku() {
         }
         const data = await res.json();
         const mapped = mapBook(data);
-
-        // Auto-generate synopsis using Claude API via backend
-        try {
-          const synRes = await fetch(`${API_BASE}/books/generate-synopsis`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              title: mapped.title || mapped.judul,
-              author: mapped.author || mapped.penulis
-            })
-          });
-          if (synRes.ok) {
-            const synData = await synRes.json();
-            mapped.sinopsis = synData.synopsis;
-          }
-        } catch (e) {
-          console.error("Gagal generate sinopsis otomatis:", e);
-        }
-
         setBuku(mapped);
       } catch (err) {
         console.error("Error fetching book details:", err);

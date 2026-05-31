@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./admin.css";
-import AdminNavbar from "../components/AdminNavbar";
+import AdminNavbar from "../components/adminnavbar";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 

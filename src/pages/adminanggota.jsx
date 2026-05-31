@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./adminanggota.css";
-import AdminNavbar from "../components/AdminNavbar";
+import AdminNavbar from "../components/adminnavbar";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
@@ -18,8 +18,8 @@ export default function AdminAnggota() {
         
         const mapped = rawData.map((u, i) => ({
           realId: u.id,
-          nim: u.nim || u.username || `NIM-${u.id || i}`,
-          nama: u.name || u.nama || `User ${u.id || i}`,
+          nim: u.nim || u.username || u.nama_lengkap || `NIM-${u.id || i}`,
+          nama: u.name || u.nama || u.nama_lengkap || `User ${u.id || i}`,
           totalPinjam: u.totalPinjam || u.total_pinjam || 0,
           pinjamAktif: u.pinjamAktif || u.pinjam_aktif || 0,
         }));
